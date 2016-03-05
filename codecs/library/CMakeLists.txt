@@ -1,5 +1,0 @@
-add_subdirectory(common)
-add_subdirectory(tests_common)
-add_subdirectory(femtozip)
-add_subdirectory(trivial)
-add_subdirectory(zlib)
