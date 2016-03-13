@@ -1,6 +1,0 @@
-TARGET_NAME()
-
-ADD_LIBRARY("${TARGET_NAME}" STATIC Huffman.h Huffman.cpp)
-TARGET_LINK_LIBRARIES("${TARGET_NAME}" library-common)
-
-ADD_SUBDIRECTORY(test)
