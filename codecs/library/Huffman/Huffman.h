@@ -71,13 +71,11 @@ namespace Codecs {
 
         void load(const string_view &) override;
 
-        size_t sample_size(size_t) const override {
-            return 10000;
-        };
+        size_t sample_size(size_t) const override;
 
         void learn(const StringViewVector &samples) override;
 
-        void reset() override { }
+        void reset() override;
     };
 
 } //  namespace Huffman

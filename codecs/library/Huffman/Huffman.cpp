@@ -284,6 +284,10 @@ namespace Codecs {
         MakeCodes();
     }
 
+    size_t HuffmanCodec::sample_size(size_t) const {
+        return 10000;
+    }
+
     void HuffmanCodec::learn(const StringViewVector &samples) {
         vector<unsigned long long> frequencies(256, 0);
         for (auto It = samples.begin(); It != samples.end(); ++It) {
@@ -322,4 +326,10 @@ namespace Codecs {
         MakeCodes();
     }
 
+    void HuffmanCodec::reset() {
+        codeLenths.resize(0);
+        code_tree.resize(0);
+        precounted.resize(0);
+        escape_code.resize(0);
+    }
 }
