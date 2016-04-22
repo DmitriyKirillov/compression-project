@@ -104,16 +104,16 @@ namespace Codecs {
             data = std::move(s.data);
         }
 
-        typename std::remove_reference<std::string>::type&& move() {
+        typename std::remove_reference<std::string>::type &&move() {
             return std::move(data);
         }
 
-        void debug_print() const {
-            for (char elem : data) {
-                std::bitset<8> out(elem);
-                std::cout << out << ' ';
+        friend std::ostream &operator<<(std::ostream &out, const BinString &s) {
+            for (char elem : s.data) {
+                std::bitset<8> buffer(elem);
+                out << buffer << ' ';
             }
-            std::cout << '\n';
+            return out;
         }
     };
 
@@ -136,7 +136,7 @@ namespace Codecs {
         vector<bool> escape_code;
 
         void InplaceSymbols(vector<node> &tree, size_t v, const vector<unsigned char> &chars_list,
-                size_t &p, size_t target_level, size_t level = 0) {
+                            size_t &p, size_t target_level, size_t level = 0) {
             if (p >= chars_list.size())
                 return;
             if (level == target_level && tree[v].is_leaf) {
@@ -222,6 +222,7 @@ namespace Codecs {
             precounted.resize(256);
             MakeCodes(code_tree, 1, {}, precounted, escape_code);
         }
+
     public:
         void encode(string &encoded, const string_view &raw) const override {
             BinString enc;
@@ -250,19 +251,7 @@ namespace Codecs {
                 }
                 for (int i = 0; i < 8; ++i) {
                     if (to_escape) {
-                        if (escape_buffer.size() == 8) {
-                            unsigned char out = 0;
-                            for (int j = 0; j < 8; ++j) {
-                                out <<= 1;
-                                out |= escape_buffer[j];
-                            }
-                            raw.push_back(static_cast<char>(out));
-                            to_escape = false;
-                            escape_buffer.resize(0);
-                            --i;
-                        } else {
-                            escape_buffer.push_back(code[i]);
-                        }
+                        escape_buffer.push_back(code[i]);
                     } else {
                         current_node = code_tree[(code[i]) ? (current_node.right) : (current_node.left)];
                         if (current_node.is_escape) {
@@ -272,6 +261,17 @@ namespace Codecs {
                             raw.push_back(current_node.leaf_value);
                             current_node = tree_root;
                         }
+                    }
+
+                    if (escape_buffer.size() == 8) {
+                        unsigned char out = 0;
+                        for (int j = 0; j < 8; ++j) {
+                            out <<= 1;
+                            out |= escape_buffer[j];
+                        }
+                        raw.push_back(static_cast<char>(out));
+                        to_escape = false;
+                        escape_buffer.resize(0);
                     }
                 }
 
@@ -332,7 +332,7 @@ namespace Codecs {
                 q.push({first.first + first.second, tree.size() - 1});
             }
 
-            codeLenths = std::vector<unsigned> (256, 0);
+            codeLenths = std::vector<unsigned>(256, 0);
 
             CountLenths(tree, codeLenths, tree.size() - 1);
             MakeCodeTree();
