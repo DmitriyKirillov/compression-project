@@ -1,5 +1,6 @@
 #include <library/Huffman/Huffman.h>
 #include <experimental/string_view>
+#include <iostream>
 #include <string>
 #include <vector>
 // #include <library/tests_common/tests_common.h>
@@ -26,17 +27,27 @@ int main() {
                      "voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat"
                      "non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."});
 
-    std::string sample_raw = "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris";
+    std::string simple_raw = "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris";
 
     std::string code;
-    codec.encode(code, sample_raw);
+    codec.encode(code, simple_raw);
     std::string decoded;
     codec.decode(decoded, code);
-    std::cout << ((decoded == sample_raw) ? ("Matched") : ("Didn't matched")) << '\n' << sample_raw
-    << "\nCompression ratio: " << static_cast<double>(sample_raw.size()) / static_cast<double>(code.size())
+    std::cout << ((decoded == simple_raw) ? ("Matched") : ("Didn't matched")) << '\n' << simple_raw
+    << "\nCompression ratio: " << static_cast<double>(simple_raw.size()) / static_cast<double>(code.size())
     << '\n' << decoded;
 
+    Codecs::HuffmanCodec other;
+    other.load(codec.save());
 
+    std::string code_new;
+    other.encode(code_new, simple_raw);
+    std::cout << "\n\nDictionary copied ";
+    if (code_new == code)
+        std::cout << "successfully";
+    else
+        std::cout << "with erorrs";
+    std::cout << std::endl;
 
     return 0;
 }
