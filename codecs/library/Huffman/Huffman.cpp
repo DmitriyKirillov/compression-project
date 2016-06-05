@@ -254,7 +254,7 @@ namespace Codecs {
         return dict.read();
     }
 
-    void HuffmanCodec::load(const string_view &dict) {
+    void HuffmanCodec::load(const string &dict) {
         codeLenths = vector<unsigned>(256, 0);
         vector<bool> bits(8 * dict.size(), false);
         for (size_t pos = 0, i = 0; i < dict.size(); pos += 8, ++i) {
@@ -285,7 +285,7 @@ namespace Codecs {
     }
 
     size_t HuffmanCodec::sample_size(size_t) const {
-        return 10000;
+        return 100000;
     }
 
     void HuffmanCodec::learn(const StringViewVector &samples) {

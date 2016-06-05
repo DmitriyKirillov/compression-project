@@ -1,6 +1,6 @@
 TARGET_LIB(
-        SOURCES Huffman.h Huffman.cpp
-        LINK_DEPS library-common
+        SOURCES DictHuffman.h DictHuffman.h
+        LINK_DEPS library-common library-Bor library-Huffman
 )
 
 ADD_SUBDIRECTORY(test)

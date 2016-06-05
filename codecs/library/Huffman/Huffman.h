@@ -10,6 +10,10 @@ namespace Codecs {
         unsigned short unused_bits;
 
     public:
+        void reserve_char(size_t size) {
+            data.reserve(size);
+        }
+
         void push_back(bool);
 
         void extend(const vector<bool> &);
@@ -69,7 +73,7 @@ namespace Codecs {
 
         string save() const override;
 
-        void load(const string_view &) override;
+        void load(const string &) override;
 
         size_t sample_size(size_t) const override;
 

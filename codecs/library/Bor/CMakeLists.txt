@@ -3,4 +3,4 @@ TARGET_LIB(
         LINK_DEPS library-common
 )
 
-#ADD_SUBDIRECTORY(test)
+ADD_SUBDIRECTORY(test)

@@ -56,7 +56,7 @@ namespace Codecs {
         virtual void decode(string& raw, const string_view& encoded) const = 0;
 
         virtual string save() const = 0;
-        virtual void load(const string_view&) = 0;
+        virtual void load(const string&) = 0;
 
         virtual size_t sample_size(size_t records_total) const = 0;
         virtual void learn(const StringViewVector& all_samples) = 0;

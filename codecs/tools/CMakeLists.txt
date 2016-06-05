@@ -1,1 +1,1 @@
-ADD_SUBDIRECTORY(benchmark)
+add_subdirectory(tester)

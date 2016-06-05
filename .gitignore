@@ -56,3 +56,7 @@ crashlytics-build.properties
 .Trash-*
 
 *.pyc
+
+build/
+
+test-data/
