@@ -306,11 +306,11 @@ namespace Codecs {
         }
 
         size_t sample_size(size_t) const override {
-            return 10000;
+            return 100000;
         };
 
         size_t sample_size() const {
-            return 10000;
+            return 100000;
         };
 
         void learn(const StringViewVector &samples) {

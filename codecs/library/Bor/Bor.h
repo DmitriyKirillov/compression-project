@@ -27,8 +27,8 @@ namespace Codecs {
         };
 
     private:
-        const uint_fast16_t MAX_SUBSTR_L = 8;
-        const long double CRITERIA_EPS = 0.5;
+        const uint_fast16_t MAX_SUBSTR_L = 16;
+        const long double CRITERIA_EPS = 0.0;
         const size_t SUBSTR_TO_GET = 600;
 
         uintmax_t tot_lenth;
@@ -46,13 +46,15 @@ namespace Codecs {
             prefix_p /= (tot_lenth - s_lenth + 1);
             letter_p = last_letter_q;
             letter_p /= tot_lenth;
-            return concat_p >= 6 * prefix_p * letter_p - CRITERIA_EPS;
+            return concat_p >= 4 * prefix_p * letter_p - CRITERIA_EPS;
         }
 
         void ConstructBor(const StringViewVector &sample) {
             unsigned char trans;
             bor.resize(1);
             bor[0] = node();
+            //uintmax_t memory = 0;
+            //uint_fast16_t node_m = sizeof node();
             for (auto It_s = sample.begin(); It_s != sample.end(); ++It_s) {
                 for (auto start_pos = It_s->begin(); start_pos != It_s->end(); ++start_pos) {
                     size_t bor_pos = 0;
@@ -67,9 +69,11 @@ namespace Codecs {
                         }
                         bor_pos = bor[bor_pos].next[trans];
                         bor[bor_pos].quantity += 1;
+                        //memory = std::max(memory, node_m * bor.capacity());
                     }
                 }
             }
+            //std::cout << memory << '\n';
         }
 
         void BorCriteriaDFS(size_t bor_pos, unsigned transision = 0, size_t parent = 0, std::string prefix = "",

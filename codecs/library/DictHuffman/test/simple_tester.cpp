@@ -22,6 +22,12 @@ int main() {
         buffer.clear();
     }
 
+    std::ofstream deb("/home/dmitry/compression-project/test-data/simple.txt", std::ios::trunc);
+    for (size_t j = 0; j < sample.size(); ++j) {
+        deb << sample[j];
+    }
+    deb.close();
+
     std::cout << "Start Learning" << std::endl;
     auto start = std::chrono::high_resolution_clock::now();
 
@@ -31,7 +37,7 @@ int main() {
     std::cout << "Learning Finished for " << duration << " nanoseconds.\n Start encoding" << std::endl;
     std::istreambuf_iterator<char> eos;
     std::string raw(std::istreambuf_iterator<char>(in), eos);
-    raw.resize(30000);
+    raw.resize(300000);
     std::string enc;
     codec.encode(enc, raw);
     std::cout << "Compression Finised. Compression Ratio is " <<

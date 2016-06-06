@@ -11,131 +11,57 @@
 #include <chrono>
 #include <random>
 #include <set>
+#include <vector>
 #include <stdlib.h>
 #include <string>
 
 enum optionIndex {
-    UNKNOWN, HELP, INPUT_FILE, OUTPUT_FILE, INPUT_TYPE, TINY
+    UNKNOWN, HELP, INPUT_FILE, INPUT_TYPE, TINY, S_SIZE, NO_SHUFFLE
 };
 const option::Descriptor usage[] =
         {
-                {UNKNOWN,     0, "",  "",          option::Arg::None,     "USAGE: example [options]\n\n"
-                                                                                  "Options:"},
-                {HELP,        0, "h", "help",      option::Arg::None,     "  --help  \tPrint usage and exit."},
-                {INPUT_FILE,  0, "",  "test-file", option::Arg::Optional, ""},
-                {OUTPUT_FILE, 0, "",  "output",    option::Arg::Optional, ""},
-                {INPUT_TYPE,  0, "t", "",          option::Arg::Optional, ""},
-                {TINY,        0, "",  "sm",        option::Arg::Optional, ""},
-                {0,           0, 0,   0,           0,                     0}
+                {UNKNOWN,     0, "",  "",            option::Arg::None,     ""},
+                {HELP,        0, "h", "help",        option::Arg::None,     ""},
+                {INPUT_FILE,  0, "",  "test-file",   option::Arg::Optional, ""},
+                {INPUT_TYPE,  0, "t", "",            option::Arg::Optional, ""},
+                {TINY,        0, "",  "sm",          option::Arg::Optional, ""},
+                {S_SIZE,      0, "",  "sample-size", option::Arg::Optional, ""},
+                {NO_SHUFFLE,  0, "",  "no-shuffle",  option::Arg::None,     ""},
+                {0,           0, 0,   0,             0,                     0}
         };
 
-size_t count_entries(std::istream &in, bool LE_type = false) {
-    size_t counter = 0;
-    if (LE_type) {
-        uint32_t entry_size;
-        char int_buff[5];
-        while (in.good()) {
-            in.read(int_buff, 4);
-            int_buff[4] = int_buff[0];
-            int_buff[0] = int_buff[3];
-            int_buff[3] = int_buff[4];
-
-            int_buff[4] = int_buff[1];
-            int_buff[1] = int_buff[2];
-            int_buff[2] = int_buff[4];
-
-            std::memcpy(&entry_size, int_buff, 4);
-            std::cout << int_buff << '\n';
-            in.seekg(entry_size, std::ios::cur);
-        }
-    } else {
-        std::string buff;
-        while (getline(in, buff)) {
-            buff.resize(0);
-            ++counter;
-        }
-    }
-    return counter;
-}
-
-size_t read_entries(std::istream &in, std::vector<std::string> &data, size_t n, bool LE_type = false) {
-    data.reserve(data.size() + n);
+size_t read_entries(std::istream &in, std::vector<std::string> &data, int_fast64_t n, bool LE_type = false) {
     size_t readed = 0;
     if (LE_type) {
-        uint32_t entry_size;
-        char int_buff[5];
-        char *char_buff;
-        for (size_t i = (n == 0); i != n && in; ++i) {
-            in.read(int_buff, 4);
-            int_buff[4] = int_buff[0];
-            int_buff[0] = int_buff[3];
-            int_buff[3] = int_buff[4];
+        in.seekg(0, in.end);
+        long length = in.tellg();
+        in.seekg(0, in.beg);
 
-            int_buff[4] = int_buff[1];
-            int_buff[1] = int_buff[2];
-            int_buff[2] = int_buff[4];
+        char *char_buff = new char[length];
+        in.read(char_buff, length);
 
-            std::memcpy(&entry_size, int_buff, 4);
-            char_buff = new char[entry_size];
-            in.read(char_buff, entry_size);
-            data.push_back(std::string(char_buff, entry_size));
+        int_fast64_t i = 0;
+        uint_fast32_t entry_size;
+        while (i != length && i != n) {
+            entry_size = 0;
+            for (int j = 0; j < 4; ++j) {
+                entry_size += (static_cast<unsigned char>(char_buff[i + j]) << (j * 8));
+            }
+            i += 4;
+            data.push_back(std::string(char_buff + i, entry_size));
             readed += entry_size;
-            delete[] char_buff;
+            i += entry_size;
         }
+        delete[] char_buff;
     } else {
         std::string buff;
-        for (size_t i = (n == 0); i != n && getline(in, buff); ++i) {
+        for (int_fast64_t i = 0; i != n && getline(in, buff); ++i) {
             data.push_back(buff);
             readed += buff.size();
-            buff.resize(0);
+            buff.clear();
         }
     }
     return readed;
-}
-
-void pickup_random_entries(std::istream &in, std::vector<std::string> &out, size_t n, size_t max_entries, bool LE_type=false) {
-    std::set<uint_fast32_t> numbers;
-    std::mt19937 generator(std::chrono::system_clock::now().time_since_epoch() / std::chrono::milliseconds(1));
-    while (numbers.size() < n) {
-        numbers.insert(generator() % max_entries);
-    }
-
-    size_t counter = 0;
-    if (LE_type) {
-        uint32_t entry_size;
-        char int_buff[5];
-        char *char_buff;
-        while (in.good()) {
-            in.read(int_buff, 4);
-            int_buff[4] = int_buff[0];
-            int_buff[0] = int_buff[3];
-            int_buff[3] = int_buff[4];
-
-            int_buff[4] = int_buff[1];
-            int_buff[1] = int_buff[2];
-            int_buff[2] = int_buff[4];
-
-            std::memcpy(&entry_size, int_buff, 4);
-            if (numbers.find(counter) != numbers.end()) {
-                char_buff = new char[entry_size];
-                in.read(char_buff, entry_size);
-                out.push_back(std::string(char_buff, entry_size));
-                delete[] char_buff;
-            } else {
-                in.seekg(entry_size, std::ios::cur);
-            }
-            ++counter;
-        }
-    } else {
-        std::string buff;
-        while (getline(in, buff)) {
-            if (numbers.find(counter) != numbers.end()) {
-                out.push_back(buff);
-            }
-            ++counter;
-            buff.resize(0);
-        }
-    }
 }
 
 size_t SMALL_ENTRY_NUM = 1000;
@@ -173,9 +99,13 @@ int main(int argc, char *argv[]) {
     }
     if (options[HELP]) {
         std::cout << "USAGE: ./tester --test-file=test.txt [options]\n"
-        << "Options:\n-h, --help\tThis help page\n--test-file\tfull path to the file with test data\n" <<
-        "-t\t\tType of file encoding. use -tLE if data file's entry looks like 'LE uint32 size + entry'\n" <<
-        "--sm \t\t Codec will decode smaller data. Tester will show compresion ration, but not compression time\n";
+                "Options:\n-h, --help\n\t\tThis help page\n\n"
+                "--test-file=<path>\n\t\tfull path to the file with test data\n\n"
+                "-t\n\t\tType of file encoding. use -tLE if data file's entry looks like 'LE uint32 size + entry'\n\n"
+                "--sm=<number>\n\t\tCodec will encode only first <number> entries from test file."
+                " Tester will show compresion ration, but not compression time\n\n"
+                "--sample-size=<new size>\n\t\tTester will use <new size> entries to train codec\n\n"
+                "--no-shuffle\n\t\tTester won't shuffle test data before learning. !!! It can reduce compression ratio\n";
         return 0;
     }
 
@@ -190,31 +120,52 @@ int main(int argc, char *argv[]) {
         LE_encoding = (tmp == "LE");
     }
 
-    if (options[TINY] && options[TINY].arg != nullptr) {
-        SMALL_ENTRY_NUM = std::stoi(options[TINY].arg);
+    if (options[TINY]) {
+        if (options[TINY].arg != nullptr) {
+            SMALL_ENTRY_NUM = std::stoi(options[TINY].arg);
+        }
+        std::cout << "In this mode codec will encode only " << SMALL_ENTRY_NUM << " entries from file. Tester won't"
+                " show any encoding speed information (because it will bi incorrect), however tester will show correct compression ratio.\n";
+    }
+    size_t sample_size = 0;
+    if (options[S_SIZE]) {
+        if (options[S_SIZE].arg != nullptr) {
+            sample_size = std::stoi(options[S_SIZE].arg);
+        } else {
+            std::cout << "After --sample-size you should enter new size of sample. Ex.: --sample-size=100\n";
+        }
     }
 
     std::cout << "Preparing test file. It can take some time\n";
 
-    std::ifstream inp;
-    inp.open(options[INPUT_FILE].arg);
-
-    Codecs::HuffmanCodec codec;
-
-    size_t sample_size = codec.sample_size(0);
-    std::vector<std::string> data;
-    std::vector<std::experimental::string_view> sample;
-    size_t number_entries = count_entries(inp, LE_encoding);
-    inp.close();
-    inp.clear();
-    inp.open(options[INPUT_FILE].arg);
-    pickup_random_entries(inp, data, sample_size, number_entries, LE_encoding);
-    for (size_t j = 0; j < data.size(); ++j) {
-        sample.push_back(data[j]);
+    std::fstream norm_file(".test.data", std::fstream::in | std::fstream::out | std::ios::trunc);
+    {
+        std::ifstream src;
+        src.open(options[INPUT_FILE].arg);
+        std::vector<std::string> data;
+        read_entries(src, data, -1, LE_encoding);
+        src.close();
+        if (!options[NO_SHUFFLE]) {
+            uint64_t seed = std::chrono::system_clock::now().time_since_epoch().count();
+            std::shuffle(data.begin(), data.end(), std::default_random_engine(seed));
+        }
+        for (size_t j = 0; j < data.size(); ++j) {
+            norm_file << data[j] << '\n';
+        }
     }
+    norm_file.close();
+    norm_file.clear();
 
-    inp.close();
-    inp.clear();
+    Codecs::DictHuffmanCodec codec;
+    norm_file.open(".test.data");
+
+    sample_size = (sample_size ? sample_size : codec.sample_size());
+    std::vector<std::experimental::string_view> sample;
+    std::string buff;
+    for (size_t i = 0; i < sample_size && getline(norm_file, buff); ++i) {
+        sample.push_back(buff);
+        buff.resize(0);
+    }
 
     std::cout << "Start Learning speed test\n";
 
@@ -224,25 +175,19 @@ int main(int argc, char *argv[]) {
     auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(finish - start).count();
     std::cout << "Learning finished in " << static_cast<long double>(duration) / 1000000000 << " seconds.\n";
 
-    inp.open(options[INPUT_FILE].arg);
+    norm_file.clear();
+    norm_file.seekg(0, norm_file.beg);
     std::string raw;
-    {
-        std::vector<std::string> entries;
-        size_t s_len;
-        if (options[TINY]) {
-            s_len = read_entries(inp, entries, SMALL_ENTRY_NUM, LE_encoding);
-        } else {
-            s_len = read_entries(inp, entries, 0, LE_encoding);
+    if (options[TINY]) {
+        for (size_t i = 0; i < SMALL_ENTRY_NUM && getline(norm_file, buff); ++i) {
+            raw.append(buff);
+            buff.clear();
         }
-        raw.reserve(s_len + (LE_encoding ? entries.size() : 0));
-        for (size_t i = 0; i < entries.size(); ++i) {
-            raw.append(entries[i]);
-            if (LE_encoding) {
-                raw.push_back('\n');
-            }
-        }
+    } else {
+        std::istreambuf_iterator<char> eos;
+        raw = std::string(std::istreambuf_iterator<char>(norm_file), eos);
     }
-    inp.close();
+    norm_file.close();
 
     std::string enc;
     std::cout << "Start encoding test.";
@@ -273,6 +218,7 @@ int main(int argc, char *argv[]) {
     } else {
         std::cout << "Data decoded incorrectly\n";
     }
+    std::remove(".test.data");
 
     return 0;
 }

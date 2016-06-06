@@ -1,6 +1,10 @@
 TARGET_NAME()
 
-ADD_EXECUTABLE("${TARGET_NAME}" simple_tester.cpp)
-TARGET_LINK_LIBRARIES("${TARGET_NAME}" library-DictHuffman)
+TARGET_NAME()
+
+TARGET_EXE(
+        SOURCES simple_tester.cpp
+        LINK_DEPS library-DictHuffman
+)
 
 #ADD_TEST(NAME "${TARGET_NAME}" COMMAND "${TARGET_NAME}" DEPENDS "${TARGET_NAME}")
