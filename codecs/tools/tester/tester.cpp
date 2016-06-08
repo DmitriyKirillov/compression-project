@@ -127,6 +127,10 @@ int main(int argc, char *argv[]) {
     std::string sample;
     std::ifstream inp;
     inp.open(options[INPUT_FILE].arg);
+    if (!inp.is_open()) {
+        std::cout << "the file " << options[INPUT_FILE].arg << " does not exist.\n";
+    }
+
     std::vector<std::string> data;
     read_entries(inp, data, -1, LE_encoding);
     inp.close();
@@ -189,7 +193,7 @@ int main(int argc, char *argv[]) {
         if (decoded != data[i]) {
             std::cout << "Encoded/Decodec incorrectly on the " << i << " record in file "
             << options[INPUT_FILE].arg << '\n';
-            return 0;
+            break;
         }
 
         total_encoded += enc.size();
@@ -206,12 +210,12 @@ int main(int argc, char *argv[]) {
     << (double) 1 - (double) (total_encoded + saved.size()) / (double) total_raw
     << "\n\nCompression time:\nMin: " << (long double) enc_time[0] / 1000000
     << "\tMax: " << (long double) enc_time[2] / 1000000
-    << "\tAverage: " << (long double) enc_time[1] / ((uint64_t) 1000000 * records_number)
-    << "\nTime spent on whole file encoding: " << (double) enc_time[1] / 1000000 << " miliseconds\n"
+    << "\tAverage: " << (long double) enc_time[1] / ((uint64_t) 1000000 * records_number) << " milliseconds"
+    << "\nTime spent on whole file encoding: " << (double) enc_time[1] / 1000000000 << " seconds\n"
     << "\nDecompression time:\nMin: " << (long double) dec_time[0] / 1000000
     << "\tMax: " << (long double) dec_time[2] / 1000000
-    << "\tAverage: " << (long double) dec_time[1] / ((uint64_t) 1000000 * records_number)
-    << "\nTime spent on whole file encoding: " << (double) dec_time[1] / 1000000 << " miliseconds\n";
+    << "\tAverage: " << (long double) dec_time[1] / ((uint64_t) 1000000 * records_number) << " milliseconds"
+    << "\nTime spent on whole file encoding: " << (double) dec_time[1] / 1000000000 << " seconds\n";
 
     if (options[SAVE]) {
         size_t to_test = std::min((size_t)3000, data.size());

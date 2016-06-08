@@ -25,14 +25,26 @@ namespace Codecs {
         };
 
         struct search_node {
+        private:
+            std::map<unsigned char, size_t> next;
+
+        public:
             bool is_leaf;
             size_t dict_n;
-            size_t next[256];
 
-            search_node() : is_leaf(false) {
-                for (int i = 0; i < 256; ++i) {
-                    next[i] = 0;
+            search_node() : next(), is_leaf(false) { }
+
+            size_t get_transition(unsigned char symbol) const {
+                auto It = next.find(symbol);
+                if (It != next.end()) {
+                    return It->second;
+                } else {
+                    return 0;
                 }
+            }
+
+            void set_transition(unsigned char symbol, size_t pos) {
+                next[symbol] = pos;
             }
 
             search_node &operator=(const search_node &) = default;
@@ -56,13 +68,16 @@ namespace Codecs {
 
         void expand_search_tree(size_t str_number) {
             size_t bor_pos = 0;
+            size_t next_pos;
             for (char symbol : dict[str_number]) {
                 unsigned char transition = static_cast<unsigned char>(symbol);
-                if (!search_tree[bor_pos].next[transition]) {
-                    search_tree[bor_pos].next[transition] = search_tree.size();
+                next_pos = search_tree[bor_pos].get_transition(transition);
+                if (!next_pos) {
+                    search_tree[bor_pos].set_transition(transition, search_tree.size());
+                    next_pos = search_tree.size();
                     search_tree.push_back(search_node());
                 }
-                bor_pos = search_tree[bor_pos].next[transition];
+                bor_pos = next_pos;
             }
             search_tree[bor_pos].is_leaf = true;
             search_tree[bor_pos].dict_n = str_number;
@@ -153,7 +168,7 @@ namespace Codecs {
 
         void lenth_place_DFS(const std::vector<size_t> &list, size_t target_layer,
                              std::vector<node> &tree, size_t &last_pos,
-                             size_t pos, size_t layer=0) {
+                             size_t pos, size_t layer = 0) {
             if (last_pos >= list.size() || layer > target_layer) {
                 return;
             }
@@ -178,16 +193,16 @@ namespace Codecs {
                 pos = 0;
                 for (size_t i = last_start; i < raw.size(); ++i) {
                     transition = static_cast<unsigned char>(raw[i]);
-                    if (!search_tree[pos].next[transition]) {
+                    if (!search_tree[pos].get_transition(transition)) {
                         out.extend(precounted[search_tree[pos].dict_n]);
                         pos = 0;
                         last_start = i;
                     }
-                    pos = search_tree[pos].next[transition];
+                    pos = search_tree[pos].get_transition(transition);
                 }
                 if (last_start < raw.size()) {
                     transition = static_cast<unsigned char>(raw[last_start]);
-                    out.extend(precounted[search_tree[search_tree[0].next[transition]].dict_n]);
+                    out.extend(precounted[search_tree[search_tree[0].get_transition(transition)].dict_n]);
                     ++last_start;
                 } else {
                     break;
@@ -221,7 +236,7 @@ namespace Codecs {
             }
         };
 
-        std::ostream& save(std::ostream &out) const {
+        std::ostream &save(std::ostream &out) const {
             for (size_t i = 1; i < dict.size(); ++i) {
                 out << static_cast<unsigned char>(dict[i].size());
                 out << dict[i];
@@ -256,7 +271,7 @@ namespace Codecs {
                 for (size_t j = 0; in.good(); ++j) {
                     code_tree.push_back({0, 0, true, j + 1});
                     str_l = static_cast<unsigned char>(in.get());
-                    if(!str_l) {
+                    if (!str_l) {
                         break;
                     }
                     in.read(buffer, str_l);

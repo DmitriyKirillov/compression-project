@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <library/common/codec.h>
+
 #include <cstdint>
+#include <forward_list>
 #include <map>
 #include <vector>
 #include <iostream>
@@ -16,10 +18,23 @@ namespace Codecs {
 
         struct node {
             bool is_end;
-            std::vector<size_t> next;
+            std::map<unsigned char, size_t> next;
             uintmax_t quantity;
 
-            node() : is_end(false), next(256, 0), quantity(0) { }
+            node() : is_end(false), next(), quantity(0) { }
+
+            size_t get_transition(unsigned char symbol) const {
+                auto It = next.find(symbol);
+                if (It != next.end()) {
+                    return It->second;
+                } else {
+                    return 0;
+                }
+            }
+
+            void set_transition(unsigned char symbol, size_t pos) {
+                next[symbol] = pos;
+            }
 
             node(uintmax_t q) : node() {
                 quantity = q;
@@ -27,9 +42,8 @@ namespace Codecs {
         };
 
     private:
-        const uint_fast16_t MAX_SUBSTR_L = 9;
-        //const uint_fast32_t MEMORY_BORDER = (1 << 29);
-        const long double CRITERIA_EPS = 0.0004;
+        const uint_fast16_t MAX_SUBSTR_L = 11;
+        const double CRITERIA_EPS = 0.00000;
         //const size_t SUBSTR_TO_GET = 600;
 
         uintmax_t tot_lenth;
@@ -60,15 +74,18 @@ namespace Codecs {
                 for (auto start_pos = It_s->begin(); start_pos != It_s->end(); ++start_pos) {
                     size_t bor_pos = 0;
                     ++tot_lenth;
+                    size_t next_pos;
                     for (auto current_pos = start_pos;
                          current_pos != It_s->end() && current_pos != start_pos + MAX_SUBSTR_L;
                          ++current_pos) {
                         trans = static_cast<unsigned char>(*current_pos);
-                        if (!bor[bor_pos].next[trans]) {
-                            bor[bor_pos].next[trans] = bor.size();
+                        next_pos = bor[bor_pos].get_transition(trans);
+                        if (!next_pos) {
+                            bor[bor_pos].set_transition(trans, bor.size());
+                            next_pos = bor.size();
                             bor.push_back(node());
                         }
-                        bor_pos = bor[bor_pos].next[trans];
+                        bor_pos = next_pos;
                         bor[bor_pos].quantity += 1;
                     }
                 }
@@ -79,9 +96,9 @@ namespace Codecs {
         void BorCriteriaDFS(size_t bor_pos, unsigned transision = 0, size_t parent = 0, std::string prefix = "",
                             size_t layer = 0) {
             bool cool = bor_pos && criteria(bor[bor_pos].quantity,
-                                 bor[parent].quantity,
-                                 bor[bor[0].next[transision]].quantity,
-                                 layer);
+                                            bor[parent].quantity,
+                                            bor[bor[0].get_transition(transision)].quantity,
+                                            layer);
             if (cool) {
                 dict.push_back({prefix, static_cast<double>(bor[bor_pos].quantity) /
                                         static_cast<double>(tot_lenth - layer)});
@@ -89,19 +106,23 @@ namespace Codecs {
             if (cool || !bor_pos) {
                 std::string new_prefix = prefix;
                 new_prefix.push_back(0);
+                size_t next_pos;
                 for (unsigned trans = 0; trans != 256; ++trans) {
-                    if (bor[bor_pos].next[trans]) {
+                    next_pos = bor[bor_pos].get_transition(trans);
+                    if (next_pos) {
                         *new_prefix.rbegin() = static_cast<unsigned char>(trans);
-                        BorCriteriaDFS(bor[bor_pos].next[trans], trans, bor_pos, new_prefix, layer + 1);
+                        BorCriteriaDFS(next_pos, trans, bor_pos, new_prefix, layer + 1);
                     }
                 }
             }
         }
 
         void CorrectChars() {
+            size_t next;
             for (unsigned i = 0; i != 256; ++i) {
-                if (!bor[0].next[i]) {
-                    bor[0].next[i] = bor.size();
+                next = bor[0].get_transition(i);
+                if (!next) {
+                    bor[0].set_transition(i, bor.size());
                     bor.push_back(node(0));
                 }
             }
