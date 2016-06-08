@@ -12,14 +12,14 @@ namespace Codecs {
 
     class BOR {
     public:
-        typedef std::pair<std::string, long double> dict_entry;
+        typedef std::pair<std::string, double> dict_entry;
 
         struct node {
             bool is_end;
             std::vector<size_t> next;
             uintmax_t quantity;
 
-            node() : is_end(false), next(256, 0), quantity(0) {}
+            node() : is_end(false), next(256, 0), quantity(0) { }
 
             node(uintmax_t q) : node() {
                 quantity = q;
@@ -27,9 +27,10 @@ namespace Codecs {
         };
 
     private:
-        const uint_fast16_t MAX_SUBSTR_L = 16;
-        const long double CRITERIA_EPS = 0.0;
-        const size_t SUBSTR_TO_GET = 600;
+        const uint_fast16_t MAX_SUBSTR_L = 9;
+        //const uint_fast32_t MEMORY_BORDER = (1 << 29);
+        const long double CRITERIA_EPS = 0.0004;
+        //const size_t SUBSTR_TO_GET = 600;
 
         uintmax_t tot_lenth;
         std::vector<node> bor;
@@ -69,7 +70,6 @@ namespace Codecs {
                         }
                         bor_pos = bor[bor_pos].next[trans];
                         bor[bor_pos].quantity += 1;
-                        //memory = std::max(memory, node_m * bor.capacity());
                     }
                 }
             }
@@ -78,18 +78,20 @@ namespace Codecs {
 
         void BorCriteriaDFS(size_t bor_pos, unsigned transision = 0, size_t parent = 0, std::string prefix = "",
                             size_t layer = 0) {
-            if (!bor_pos ||
-                criteria(bor[bor_pos].quantity,
-                         bor[parent].quantity,
-                         bor[bor[0].next[transision]].quantity,
-                         layer)) {
-                dict.push_back({prefix, static_cast<long double>(bor[bor_pos].quantity) /
-                                        static_cast<long double>(tot_lenth - layer)});
+            bool cool = bor_pos && criteria(bor[bor_pos].quantity,
+                                 bor[parent].quantity,
+                                 bor[bor[0].next[transision]].quantity,
+                                 layer);
+            if (cool) {
+                dict.push_back({prefix, static_cast<double>(bor[bor_pos].quantity) /
+                                        static_cast<double>(tot_lenth - layer)});
+            }
+            if (cool || !bor_pos) {
                 std::string new_prefix = prefix;
                 new_prefix.push_back(0);
                 for (unsigned trans = 0; trans != 256; ++trans) {
                     if (bor[bor_pos].next[trans]) {
-                        *(new_prefix.end() - 1) = static_cast<unsigned char>(trans);
+                        *new_prefix.rbegin() = static_cast<unsigned char>(trans);
                         BorCriteriaDFS(bor[bor_pos].next[trans], trans, bor_pos, new_prefix, layer + 1);
                     }
                 }
